@@ -1,0 +1,19 @@
+Package: IdentiFlyR
+Type: Package
+Title: Create and reuse XML file for identification based on geometric morphometrics
+Version: 0.1.0
+Authors@R:
+    person("Adam", "Tofilski", , "rotofils@cyf-kr.edu.pl", role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0002-3898-7029"))
+Description: Save in XML file data required for LDA identification: reference configuratiopn, means of classes, covariance matrices and coefficients. The XML file can be used in IdentiFly software or in R script for classification of an unknown configuration. 
+License: GNU GPLv3
+Imports: 
+    geomorph,
+    ggplot2,
+    MASS,
+    shapes,
+    XML,
+    xml2
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 7.3.2
