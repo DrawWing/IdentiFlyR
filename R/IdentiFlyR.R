@@ -50,21 +50,32 @@ matrix2XML = function(inMat, inId, outXML){
   outXML$closeTag() # matrix
 }
 
-#' Create DW.XML file with classification data
+#' Create XML document with classification data
 #'
-#' @param data a matrix-like R object, with at least two dimensions
-#' @param grouping a vector with grouping variable
+#' @param inData a matrix-like R object, with at least six columns
+#' @param grVec a vector with grouping variable
 #'
 #' @return XML document
 #' @export
 #'
 #' @examples
-#' outXML <- gmLdaData2xml(inData, grVec)
-gmLdaData2xml = function(inData, grouping){
+#' inData = read.csv("https://zenodo.org/record/7567336/files/Nawrocka_et_al2018-sample-aligned.csv")
+#' grVec = inData$lineage
+#' inData = inData[, -c(1:4)] # remove unwanted columns
+#' XML = gmLdaData2xml(inData, grVec)
+#' XML$addTag("prototype", close=TRUE, attrs = c(file="apis-worker-prototype.dw.png")) # add prototype for IdentiFly software
+#' library(XML)
+#' XML::saveXML(XML$value(), file="apis-mellifera-lineage.dw.xml", prefix = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
+gmLdaData2xml = function(inData, grVec){
 
   # Error detection
   if((ncol(inData) %% 2) != 0)
-    stop("number of columns should be even")
+    stop("Number of columns should be even.")
+  if(ncol(inData) < 6)
+    stop("Number of columns should be 6 or greater.")
+  # if(length(grVec != nrow(inData)))
+  #   stop("Length of inVector should be equal to number of rows of inData.")
+
   p = ncol(inData)/2
   k = 2
 
@@ -95,24 +106,24 @@ gmLdaData2xml = function(inData, grouping){
   rownames(reference) = c("reference")
   matrix2XML(reference, "reference", XML)
 
-  means = aggregate(data, by = list(grouping), FUN = mean)
+  means = stats::aggregate(data, by = list(grVec), FUN = mean)
   rownames(means) = means$Group.1
-  means = subset (means, select = -c(Group.1))
+  means[,"Group.1"] = NULL
   colnames(means) = xyNames
   matrix2XML(means, "means", XML)
 
-  PCA <- prcomp(data)
+  PCA <- stats::prcomp(data)
   data = as.matrix(data) %*% PCA$rotation
   data <- data[,1:(2*p-4)]
 
-  n = length(unique(grouping)) # number of groups
-  LDA = MASS::lda(data, grouping, prior=rep(1/n, n))
+  n = length(unique(grVec)) # number of groups
+  LDA = MASS::lda(data, grVec, prior=rep(1/n, n))
 
   scores = as.matrix(data) %*% LDA$scaling
   scores = as.data.frame(scores)
 
   groups = rownames(means)
-  covariances = lapply(groups, function(x)cov(scores[grouping==x,]))
+  covariances = lapply(groups, function(x)stats::cov(scores[grVec==x,]))
   XML$addTag("covariances", close=FALSE)
   for (i in 1:length(groups)) {
     matrix2XML(covariances[[i]], groups[i], XML)
@@ -137,56 +148,62 @@ gmLdaData2xml = function(inData, grouping){
 #' @export
 #'
 #' @examples
-#' idDataList <- xml2gmLdaData("apis-mellifera-lineage.dw.xml")
+#' idData = xml2gmLdaData("https://zenodo.org/record/10512712/files/apis-mellifera-queens-workers-drones.dw.xml")
+#' unknown <- read.csv("https://zenodo.org/record/8071014/files/IN-raw-coordinates.csv")
+#' unknown <- data.frame(unknown, row.names = 1)  # move column 1 to row names
+#' id = gmLdaData2id(idData, unknown, average = TRUE)
+#' id$plot
+#' id$id
 xml2gmLdaData = function(path){
-  # add error checking
   XML = xml2::read_xml(path)
 
   # extract lda
-  lda.XML = xml2::xml_find_first(XML, ".//lda")
-  matrices = xml2::xml_find_all(lda.XML, ".//matrix")
+  ldaXML = xml2::xml_find_first(XML, ".//lda")
+  matrices = xml2::xml_find_all(ldaXML, ".//matrix")
 
   # extract reference
-  reference.XML = matrices[xml2::xml_attr(matrices, "id")=="reference"]
-  reference.mat = xm2matrix(reference.XML)
+  referenceXML = matrices[xml2::xml_attr(matrices, "id")=="reference"]
+  referenceMat = xm2matrix(referenceXML)
 
   # extract means
-  means.XML = matrices[xml2::xml_attr(matrices, "id")=="means"]
-  means.mat = xm2matrix(means.XML)
+  meansXML = matrices[xml2::xml_attr(matrices, "id")=="means"]
+  meansMat = xm2matrix(meansXML)
 
   # extract covariances
-  rowNames = rownames(means.mat)
+  rowNames = rownames(meansMat)
   # create list of empty dataframes
   covariances = list(rep(matrix(), length(rowNames)))
   for (i in 1:length(rowNames)) {
-    cov.XML = matrices[xml2::xml_attr(matrices, "id")==rowNames[i]]
-    cov.mat = xm2matrix(cov.XML)
-    covariances[[i]] = cov.mat
+    covXML = matrices[xml2::xml_attr(matrices, "id")==rowNames[i]]
+    covMat = xm2matrix(covXML)
+    covariances[[i]] = covMat
     names(covariances)[i] = rowNames[i]
   }
 
   # extract coefficients
-  coefficients.XML = matrices[xml2::xml_attr(matrices, "id")=="coefficients"]
-  coefficients.mat = xm2matrix(coefficients.XML)
+  coefficientsXML = matrices[xml2::xml_attr(matrices, "id")=="coefficients"]
+  coefficientsMat = xm2matrix(coefficientsXML)
 
-  return(list("reference" = reference.mat,
-              "means" = means.mat,
+  return(list("reference" = referenceMat,
+              "means" = meansMat,
               "covariances" = covariances,
-              "coefficients" = coefficients.mat))
+              "coefficients" = coefficientsMat))
 }
 
 
 #' Classify unknown samples using identification data
 #'
-#' @param idData list of identification data
-#' @param data unknown data to classify
-#' @param average average the data or classify each row
+#' @param idData List of identification data
+#' @param data Matrix of unknown data to classify
+#' @param average Optionally classify all rows or averyge only
 #'
 #' @return list of id data
 #' @export
 #'
 #' @examples
-#' idData <- xml2gmLdaData("Apis-mellifera-lineages.dw.xml")
+#' idData <- xml2gmLdaData("https://zenodo.org/record/10512712/files/apis-mellifera-queens-workers-drones.dw.xml")
+#' unknownDat <- read.csv("https://zenodo.org/record/8071014/files/IN-raw-coordinates.csv")
+#' unknownDat <- data.frame(unknownDat, row.names = 1)  # move column 1 to row names
 #' id <- gmLdaData2id(idData, unknownDat)
 gmLdaData2id = function(idData, data, average = TRUE){
   # calculate means LD by matrix multiplication
@@ -207,97 +224,97 @@ gmLdaData2id = function(idData, data, average = TRUE){
     # Align the coordinates using Generalized Procrustes Analysis
     GPA = geomorph::gpagen(data.3D, print.progress = FALSE)
     # Consensus configuration of the unknown sample
-    unknown.consensus = GPA$consensus
+    unknownConsensus = GPA$consensus
 
     # Align unknown consensus with reference
-    unknown.OPA = shapes::procOPA(reference, unknown.consensus)
-    unknown.aligned = unknown.OPA$Bhat
+    unknownOPA = shapes::procOPA(reference, unknownConsensus)
+    unknownAligned = unknownOPA$Bhat
 
     # convert aligned data from 2D to 1D
-    unknown.aligned = matrix(t(unknown.aligned), nrow=1)
+    unknownAligned = matrix(t(unknownAligned), nrow=1)
 
     # calculate LD scores
-    LD.tab = unknown.aligned %*% t(idData$coefficients)
+    LdTab = unknownAligned %*% t(idData$coefficients)
 
-    id = classifyVecLD(LD.tab, meansLD, idData$covariances)
+    id = classifyVecLD(LdTab, meansLD, idData$covariances)
     id = id$class
 
-    LD.tab = as.data.frame(LD.tab)
+    LdTab = as.data.frame(LdTab)
     plot = covEllipses(meansLD, idData$covariances) +
-      ggplot2::geom_point(LD.tab, mapping=ggplot2::aes(x = LD1, y = LD2, colour = "zzz") ) +
-      ggrepel::geom_label_repel(LD.tab,
-                       mapping=ggplot2::aes(x = LD1, y = LD2, colour = "zzz", label = "unknown"),
-                       nudge_x = 0.75, nudge_y = 0) +
-      ggplot2::scale_color_manual(values = append(rainbow(nrow(idData$means)), "black"))
+      ggplot2::geom_point(LdTab, mapping=ggplot2::aes(x = LdTab$LD1, y = LdTab$LD2, colour = "zzz") ) +
+      ggrepel::geom_label_repel(LdTab,
+                                mapping=ggplot2::aes(x = LdTab$LD1, y = LdTab$LD2, colour = "zzz", label = "unknown"),
+                                nudge_x = 0.75, nudge_y = 0) +
+      ggplot2::scale_color_manual(values = append(grDevices::rainbow(nrow(idData$means)), "black"))
   } else
   {
     # calculate lda scores for all wings
     LD.list = vector(mode = "list", length = nrow(data))
     for (r in 1:nrow(data)) {
       # Align unknown consensus with reference
-      unknown.OPA = shapes::procOPA(reference, data.3D[,,r])
-      unknown.aligned = matrix(t(unknown.OPA$Bhat), nrow=1) # convert from 2D to 1D
-      LD.row = unknown.aligned %*% t(idData$coefficients)
+      unknownOPA = shapes::procOPA(reference, data.3D[,,r])
+      unknownAligned = matrix(t(unknownOPA$Bhat), nrow=1) # convert from 2D to 1D
+      LD.row = unknownAligned %*% t(idData$coefficients)
       LD.list[[r]] = LD.row
     }
-    LD.tab = do.call(rbind, LD.list)
-    rownames(LD.tab) = rownames(data)
-    LD.tab = as.data.frame(LD.tab)
+    LdTab = do.call(rbind, LD.list)
+    rownames(LdTab) = rownames(data)
+    LdTab = as.data.frame(LdTab)
 
-    id = classifyMatLD(LD.tab, meansLD, idData$covariances)
+    id = classifyMatLD(LdTab, meansLD, idData$covariances)
 
     plot = covEllipses(meansLD, idData$covariances) +
-      ggplot2::geom_point(LD.tab, mapping=ggplot2::aes(x = LD1, y = LD2, colour = "zzz") ) +
-      ggplot2::scale_color_manual(values = append(rainbow(nrow(idData$means)), "black"))
+      ggplot2::geom_point(LdTab, mapping=ggplot2::aes(x = LdTab$LD1, y = LdTab$LD2, colour = "zzz") ) +
+      ggplot2::scale_color_manual(values = append(grDevices::rainbow(nrow(idData$means)), "black"))
   }
 
   return(list("id" = id,
               "plot" = plot,
-              "LDx" = LD.tab))
+              "LDx" = LdTab))
 }
 
 # calculate Mahalnanobis distances for data in one vector
 classifyVecLD = function(unknown.LD, means, covariances){
   groups = rownames(means)
   df = ncol(unknown.LD) - 1
-  result.list = list() # empty list for results
-  max.P = 0
-  max.group = ""
+  resultList = list() # empty list for results
+  maxP = 0
+  maxGroup = ""
   for (i in 1:length(groups)) {
-    MD = mahalanobis(unknown.LD, means[i, ], as.matrix(covariances[[i]]))
+    MD = stats::mahalanobis(unknown.LD, means[i, ], as.matrix(covariances[[i]]))
     results = c(MD)
-    P = pchisq(MD, df=df, lower.tail=FALSE)
+    P = stats::pchisq(MD, df=df, lower.tail=FALSE)
     results = c(results, P)
-    if(P > max.P){
-      max.P = P
-      max.group = groups[i]
+    if(P > maxP){
+      maxP = P
+      maxGroup = groups[i]
     }
-    result.list[[i]] = results
+    resultList[[i]] = results
   }
 
-  out.summary = paste("The sample was classified as", max.group, "with probability", max.P)
-  out.max = data.frame("group" = max.group, "P" = max.P)
+  outSummary = paste("The sample was classified as", maxGroup, "with probability", maxP)
+  outMax = data.frame("group" = maxGroup, "P" = maxP)
 
-  out.class = do.call(rbind, result.list)
-  colnames(out.class) = c("MD2", "P")
-  rownames(out.class) = rownames(means)
+  outClass = do.call(rbind, resultList)
+  colnames(outClass) = c("MD2", "P")
+  rownames(outClass) = rownames(means)
 
-  return(list("summary" = out.summary,
-              "max.group" = out.max,
-              "class" = out.class))
+  return(list("summary" = outSummary,
+              "max.group" = outMax,
+              "class" = outClass))
 }
 
 # calculate Mahalnanobis distances for each row in a matrix
 classifyMatLD = function(unknown.LD, means, covariances){
-  result.list = list() # empty list for results
+  resultList = list() # empty list for results
   for (i in 1:nrow(unknown.LD)) {
-    out.row = classifyVecLD(unknown.LD[i,], means, covariances)
-    result.list[[i]] = out.row$max
+    outRow = classifyVecLD(unknown.LD[i,], means, covariances)
+    resultList[[i]] = outRow$max
   }
-  id.results = do.call(rbind, result.list)
-  rownames(id.results) = rownames(unknown.LD)
+  idResults = do.call(rbind, resultList)
+  rownames(idResults) = rownames(unknown.LD)
 
-  return(id.results)
+  return(idResults)
 }
 
 # plot ellipses for the two LD
@@ -318,28 +335,28 @@ classifyMatLD = function(unknown.LD, means, covariances){
 #' idMeans = idData$means %*% t(idData$coefficients)
 #' covEllipses(idMeans, idData$covariances)
 covEllipses = function(means, covariances, x = 1, y = 2){
-  chi = sqrt(qchisq(0.95, 2)) # Chi-Square value for probability 95%
+  chi = sqrt(stats::qchisq(0.95, 2)) # Chi-Square value for probability 95%
 
   groups = rownames(means)
-  ellipse.list = list()
+  ellipseList = list()
   for (i in 1:length(groups)) {
     x0 = means[i, x]
     y0 = means[i, y]
 
     co = covariances[[i]]
-    cov.mat = cbind(c(co[x,x], co[x,y]),
-                    c(co[x,y], co[y,y]))
-    # cov.mat = cov.mat[1:2, 1:2]
-    cov.eigen = eigen(cov.mat)
+    covMat = cbind(c(co[x,x], co[x,y]),
+                   c(co[x,y], co[y,y]))
+    # covMat = covMat[1:2, 1:2]
+    covEigen = eigen(covMat)
 
-    a = chi*sqrt(cov.eigen$values[1]);
-    b = chi*sqrt(cov.eigen$values[2]);
-    angle = atan2(cov.eigen$vectors[2,1], cov.eigen$vectors[1,1])
+    a = chi*sqrt(covEigen$values[1]);
+    b = chi*sqrt(covEigen$values[2]);
+    angle = atan2(covEigen$vectors[2,1], covEigen$vectors[1,1])
 
     ellipse = c(x0, y0, a, b, angle)
-    ellipse.list[[i]] = ellipse
+    ellipseList[[i]] = ellipse
   }
-  ellipses = do.call(rbind, ellipse.list)
+  ellipses = do.call(rbind, ellipseList)
   LDx = paste0("LD", x)
   LDy = paste0("LD", y)
   colnames(ellipses) = c(LDx, LDy, "a", "b", "angle")
@@ -351,9 +368,9 @@ covEllipses = function(means, covariances, x = 1, y = 2){
                                          color = rownames(ellipses)) ) +
     ggplot2::geom_point() +
     ggplot2::coord_fixed() +
-    ggforce::geom_ellipse(ellipses, mapping=ggplot2::aes(x0 = !! ggplot2::ensym(LDx),
-                                                y0 = !! ggplot2::ensym(LDy),
-                                                a = a, b = b, angle = angle)) +
+    ggforce::geom_ellipse(ellipses, mapping = ggplot2::aes(x0 = !! ggplot2::ensym(LDx),
+                                                           y0 = !! ggplot2::ensym(LDy),
+                                                           a = a, b = b, angle = angle)) +
     ggrepel::geom_label_repel( ggplot2::aes(label = rownames(ellipses), size = NULL), nudge_y = 0.75) +
     ggplot2::theme(legend.position="none")
 }

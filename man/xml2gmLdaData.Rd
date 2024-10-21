@@ -16,5 +16,10 @@ list of classification data
 Read classification data from XML file
 }
 \examples{
-idDataList <- xml2gmLdaData("apis-mellifera-lineage.dw.xml")
+idData = xml2gmLdaData("https://zenodo.org/record/10512712/files/apis-mellifera-queens-workers-drones.dw.xml")
+unknown <- read.csv("https://zenodo.org/record/8071014/files/IN-raw-coordinates.csv")
+unknown <- data.frame(unknown, row.names = 1)  # move column 1 to row names
+id = gmLdaData2id(idData, unknown, average = TRUE)
+id$plot
+id$id
 }

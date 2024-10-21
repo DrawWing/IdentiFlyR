@@ -7,11 +7,11 @@
 gmLdaData2id(idData, data, average = TRUE)
 }
 \arguments{
-\item{idData}{list of identification data}
+\item{idData}{List of identification data}
 
-\item{data}{unknown data to classify}
+\item{data}{Matrix of unknown data to classify}
 
-\item{average}{average the data or classify each row}
+\item{average}{Optionally classify all rows or averyge only}
 }
 \value{
 list of id data
@@ -20,6 +20,8 @@ list of id data
 Classify unknown samples using identification data
 }
 \examples{
-idData <- xml2gmLdaData("Apis-mellifera-lineages.dw.xml")
+idData <- xml2gmLdaData("https://zenodo.org/record/10512712/files/apis-mellifera-queens-workers-drones.dw.xml")
+unknownDat <- read.csv("https://zenodo.org/record/8071014/files/IN-raw-coordinates.csv")
+unknownDat <- data.frame(unknownDat, row.names = 1)  # move column 1 to row names
 id <- gmLdaData2id(idData, unknownDat)
 }

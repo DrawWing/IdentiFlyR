@@ -2,21 +2,27 @@
 % Please edit documentation in R/IdentiFlyR.R
 \name{gmLdaData2xml}
 \alias{gmLdaData2xml}
-\title{Create DW.XML file with classification data}
+\title{Create XML document with classification data}
 \usage{
-gmLdaData2xml(inData, grouping)
+gmLdaData2xml(inData, grVec)
 }
 \arguments{
-\item{grouping}{a vector with grouping variable}
+\item{inData}{a matrix-like R object, with at least six columns}
 
-\item{data}{a matrix-like R object, with at least two dimensions}
+\item{grVec}{a vector with grouping variable}
 }
 \value{
 XML document
 }
 \description{
-Create DW.XML file with classification data
+Create XML document with classification data
 }
 \examples{
-outXML <- gmLdaData2xml(inData, grVec)
+inData = read.csv("https://zenodo.org/record/7567336/files/Nawrocka_et_al2018-sample-aligned.csv")
+grVec = inData$lineage
+inData = inData[, -c(1:4)] # remove unwanted columns
+XML = gmLdaData2xml(inData, grVec)
+XML$addTag("prototype", close=TRUE, attrs = c(file="apis-worker-prototype.dw.png")) # add prototype for IdentiFly software
+library(XML)
+XML::saveXML(XML$value(), file="apis-mellifera-lineage.dw.xml", prefix = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
 }
