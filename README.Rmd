@@ -1,25 +1,94 @@
 ---
-title: "IdentiFlyR"
 output: github_document
 ---
 
-```{r setup, include=FALSE}
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
-  fig.path = "man/figures/README-"
+  fig.path = "man/figures/README-",
+  out.width = "100%"
 )
 ```
 
-## Overview
+# IdentiFlyR
 
-This is an R Markdown format used for publishing markdown documents to GitHub. When you click the **Knit** button all R code chunks are run and a markdown file (.md) suitable for publishing to GitHub is generated.
+<!-- badges: start -->
+<!-- badges: end -->
 
-## Usage
+IdentiFlyR can be used to save identification data in an XML file. Later the data can be read from XML file and used for identification of an unknown sample.
+An alternative to IdentiFlyR could be providing all raw data and use them for identification. In case of large datasets this could be less convenient, slower and undesirable. 
+The identification is based on linear discriminant analysis (LDA) known also as canonical variate analysis (CVA).The focus of IdentiFlyR is use of LDA for identification of an unknown samples and not exploratory analysis. 
+At the moment IdentiFLyR supports only geometric morphometrics data in two dimensions. 
+XML files can be used in IdentiFly software where landmarks can be marked on an image and used for identification. 
 
-You can include R code in the document as follows:
+## Installation
 
-```{r cars}
-summary(cars)
+You can install the development version of IdentiFlyR [GitHub](https://github.com/) with:
+
+``` r
+# install.packages("devtools")
+devtools::install_github("xxx/IdentiFlyR")
 ```
 
+## Examples
+
+Read identification data from XML file and plot means and confidence ellipses in the first two linear discriminant functions. Identification data consists of: reference, means, covariances and coefficients. idData$reference numerical vector with x and y coordinates of reference configuration. It is necessary for alignment of unknown data.  idData$means mean configurations for all classes. They are in the same space as reference configuration. idData$covariances - list of covariance matrices for all classes. The covariances are in LDA space. idData$coefficients - coefficients for transferring data from reference space to LDA space.  
+
+```{r read-xml}
+library(IdentiFlyR)
+idData = xml2gmLdaData("C:/soft/IdentiFlyPro/dwxml/apis-mellifera-queens-workers-drones.dw.xml")
+names(idData)
+# transfer means to LDA space
+meansLda = idData$means %*% t(idData$coefficients)
+covEllipses(meansLda, idData$covariances)
+
+```
+
+Read raw coordinated of 19 landmarks.   
+
+```{r read-data}
+wings <- read.csv("https://zenodo.org/record/8071014/files/IN-raw-coordinates.csv")
+wings <- data.frame(wings, row.names = 1)  # move column 1 to row names
+head(wings,2)
+```
+
+Classify mean of all data. Mean of all rows was classified as "worker".
+
+```{r classify-mean}
+id = gmLdaData2id(idData, wings, average = TRUE)
+id$plot
+id$id
+```
+
+Classify rows. All 350 rows were classified as "worker".
+
+```{r classify-rows}
+id = gmLdaData2id(idData, wings, average = FALSE)
+id$plot
+head(id$id, 2)
+table(id$id$group)
+```
+
+Classify the first row. It was classified as "worker".
+
+```{r classify-row1}
+id = gmLdaData2id(idData, wings[1,])
+id$id
+```
+
+Create identification data and save them in XML file. 
+
+```{r write-xml}
+wingsLin <- read.csv("https://zenodo.org/record/7567336/files/Nawrocka_et_al2018-sample-aligned.csv")
+grVec = wingsLin$lineage
+wingsLin = wingsLin[, -c(1:4)] # remove unwanted columns
+XML = gmLdaData2xml(wingsLin, grVec)
+# add prototype for IdentiFly software
+XML$addTag("prototype", close=TRUE, attrs = c(file="apis-worker-prototype.dw.png"))
+library(XML) 
+XML::saveXML(XML$value(), file="apis-mellifera-lineage.dw.xml",
+             prefix = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
+```

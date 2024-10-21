@@ -22,7 +22,8 @@ ggplot2 plot
 Plot ellipses for the first two LD using data from covariance matrices
 }
 \examples{
-idData = xml2gmLdaData("apis-mellifera-lineage.dw.xml")
+path = "https://zenodo.org/record/10512712/files/apis-mellifera-queens-workers-drones.dw.xml"
+idData = xml2gmLdaData(path)
 idMeans = idData$means \%*\% t(idData$coefficients)
 covEllipses(idMeans, idData$covariances)
 }

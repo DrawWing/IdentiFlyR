@@ -176,9 +176,9 @@ xml2gmLdaData = function(path){
 }
 
 
-#' Classify unknown samples using XML data
+#' Classify unknown samples using identification data
 #'
-#' @param path file name with xml document
+#' @param idData list of identification data
 #' @param data unknown data to classify
 #' @param average average the data or classify each row
 #'
@@ -186,14 +186,13 @@ xml2gmLdaData = function(path){
 #' @export
 #'
 #' @examples
-#' idData <- xml2id("Apis-mellifera-lineages.dw.xml", unknownDat)
-xml2id = function(path, data, average = TRUE){
-  id.data = xml2gmLdaData(path)
-
+#' idData <- xml2gmLdaData("Apis-mellifera-lineages.dw.xml")
+#' id <- gmLdaData2id(idData, unknownDat)
+gmLdaData2id = function(idData, data, average = TRUE){
   # calculate means LD by matrix multiplication
-  means.LD = id.data$means %*% t(id.data$coefficients)
+  meansLD = idData$means %*% t(idData$coefficients)
 
-  if(ncol(data) != ncol(id.data$reference))
+  if(ncol(data) != ncol(idData$reference))
     stop("number of columns differes between reference and data")
   p = ncol(data)/2
   k = 2
@@ -202,7 +201,7 @@ xml2id = function(path, data, average = TRUE){
   data.3D = geomorph::arrayspecs(data, p, k)
 
   # convert reference from 1D to 2D
-  reference = matrix(id.data$reference, ncol=2, byrow = TRUE)
+  reference = matrix(idData$reference, ncol=2, byrow = TRUE)
 
   if(average) {
     # Align the coordinates using Generalized Procrustes Analysis
@@ -218,18 +217,18 @@ xml2id = function(path, data, average = TRUE){
     unknown.aligned = matrix(t(unknown.aligned), nrow=1)
 
     # calculate LD scores
-    LD.tab = unknown.aligned %*% t(id.data$coefficients)
+    LD.tab = unknown.aligned %*% t(idData$coefficients)
 
-    id = classifyVecLD(LD.tab, means.LD, id.data$covariances)
+    id = classifyVecLD(LD.tab, meansLD, idData$covariances)
     id = id$class
 
     LD.tab = as.data.frame(LD.tab)
-    plot = covEllipses(means.LD, id.data$covariances) +
+    plot = covEllipses(meansLD, idData$covariances) +
       ggplot2::geom_point(LD.tab, mapping=ggplot2::aes(x = LD1, y = LD2, colour = "zzz") ) +
       ggrepel::geom_label_repel(LD.tab,
                        mapping=ggplot2::aes(x = LD1, y = LD2, colour = "zzz", label = "unknown"),
                        nudge_x = 0.75, nudge_y = 0) +
-      ggplot2::scale_color_manual(values = append(rainbow(nrow(id.data$means)), "black"))
+      ggplot2::scale_color_manual(values = append(rainbow(nrow(idData$means)), "black"))
   } else
   {
     # calculate lda scores for all wings
@@ -238,18 +237,18 @@ xml2id = function(path, data, average = TRUE){
       # Align unknown consensus with reference
       unknown.OPA = shapes::procOPA(reference, data.3D[,,r])
       unknown.aligned = matrix(t(unknown.OPA$Bhat), nrow=1) # convert from 2D to 1D
-      LD.row = unknown.aligned %*% t(id.data$coefficients)
+      LD.row = unknown.aligned %*% t(idData$coefficients)
       LD.list[[r]] = LD.row
     }
     LD.tab = do.call(rbind, LD.list)
     rownames(LD.tab) = rownames(data)
     LD.tab = as.data.frame(LD.tab)
 
-    id = classifyMatLD(LD.tab, means.LD, id.data$covariances)
+    id = classifyMatLD(LD.tab, meansLD, idData$covariances)
 
-    plot = covEllipses(means.LD, id.data$covariances) +
+    plot = covEllipses(meansLD, idData$covariances) +
       ggplot2::geom_point(LD.tab, mapping=ggplot2::aes(x = LD1, y = LD2, colour = "zzz") ) +
-      ggplot2::scale_color_manual(values = append(rainbow(nrow(id.data$means)), "black"))
+      ggplot2::scale_color_manual(values = append(rainbow(nrow(idData$means)), "black"))
   }
 
   return(list("id" = id,
@@ -314,10 +313,10 @@ classifyMatLD = function(unknown.LD, means, covariances){
 #' @export
 #'
 #' @examples
-#' idData = xml2gmLdaData("apis-mellifera-lineage.dw.xml")
+#' path = "https://zenodo.org/record/10512712/files/apis-mellifera-queens-workers-drones.dw.xml"
+#' idData = xml2gmLdaData(path)
 #' idMeans = idData$means %*% t(idData$coefficients)
 #' covEllipses(idMeans, idData$covariances)
-
 covEllipses = function(means, covariances, x = 1, y = 2){
   chi = sqrt(qchisq(0.95, 2)) # Chi-Square value for probability 95%
 
