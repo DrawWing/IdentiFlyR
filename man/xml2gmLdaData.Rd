@@ -16,5 +16,5 @@ list of classification data
 Read classification data from XML file
 }
 \examples{
-idDataList <- xml2gmLdaData("Apis-mellifera-lineages.dw.xml")
+idDataList <- xml2gmLdaData("apis-mellifera-lineage.dw.xml")
 }

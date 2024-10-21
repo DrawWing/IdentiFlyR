@@ -137,7 +137,7 @@ gmLdaData2xml = function(inData, grouping){
 #' @export
 #'
 #' @examples
-#' idDataList <- xml2gmLdaData("Apis-mellifera-lineages.dw.xml")
+#' idDataList <- xml2gmLdaData("apis-mellifera-lineage.dw.xml")
 xml2gmLdaData = function(path){
   # add error checking
   XML = xml2::read_xml(path)
