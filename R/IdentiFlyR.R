@@ -54,19 +54,20 @@ matrix2XML = function(inMat, inId, outXML){
 #'
 #' @param inData a matrix-like R object, with at least six columns
 #' @param grVec a vector with grouping variable
+#' @param file a character string with file name
+#' @param prototype an optional character string with prototype file name. It is used by IdentiFly to describe landmarks.
 #'
-#' @return XML document
 #' @export
 #'
 #' @examples
-#' inData = read.csv("https://zenodo.org/record/7567336/files/Nawrocka_et_al2018-sample-aligned.csv")
-#' grVec = inData$lineage
-#' inData = inData[, -c(1:4)] # remove unwanted columns
-#' XML = gmLdaData2xml(inData, grVec)
-#' XML$addTag("prototype", close=TRUE, attrs = c(file="apis-worker-prototype.dw.png")) # add prototype for IdentiFly software
-#' library(XML)
-#' XML::saveXML(XML$value(), file="apis-mellifera-lineage.dw.xml", prefix = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
-gmLdaData2xml = function(inData, grVec){
+#' data(lineages)
+#' grVec = lineages$lineage
+#' coordinates = lineages[,-1] # remove the first column
+#' gmLdaData2xml(coordinates, grVec, "apis-mellifera-lineage.dw.xml")
+#' idData = xml2gmLdaData("apis-mellifera-lineage.dw.xml")
+#' id = gmLdaData2id(idData, coordinates, average = FALSE)
+#' id$plot
+gmLdaData2xml = function(inData, grVec, file, prototype = ""){
 
   # Error detection
   if((ncol(inData) %% 2) != 0)
@@ -137,7 +138,11 @@ gmLdaData2xml = function(inData, grVec){
 
   XML$closeTag() # lda
 
-  return(XML)
+  if(prototype!="")
+    XML$addTag("prototype", close=TRUE, attrs = c(file=prototype))
+
+  XML::saveXML(XML$value(), file=file,
+               prefix = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
 }
 
 #' Read classification data from XML file
@@ -145,15 +150,24 @@ gmLdaData2xml = function(inData, grVec){
 #' @param path file name with xml document
 #'
 #' @return list of classification data
+#' \itemize{
+#'   \item reference - matrix with reference configuration.
+#'   \item means - matrix with class means.
+#'   \item covariances - list of covariance matrices.
+#'   \item coefficients - matrix with LDA coefficients.
+#' }
+#'
 #' @export
 #'
 #' @examples
-#' idData = xml2gmLdaData("https://zenodo.org/record/10512712/files/apis-mellifera-queens-workers-drones.dw.xml")
-#' unknown <- read.csv("https://zenodo.org/record/8071014/files/IN-raw-coordinates.csv")
-#' unknown <- data.frame(unknown, row.names = 1)  # move column 1 to row names
-#' id = gmLdaData2id(idData, unknown, average = TRUE)
+#' xmlPath = system.file("extdata",
+#'                       "apis-mellifera-queens-workers-drones.dw.xml",
+#'                       package="IdentiFlyR")
+#' idData = xml2gmLdaData(xmlPath)
+#' data(lineages)
+#' unknownData <- lineages[,-1]
+#' id = gmLdaData2id(idData, unknownData, average = FALSE)
 #' id$plot
-#' id$id
 xml2gmLdaData = function(path){
   XML = xml2::read_xml(path)
 
@@ -201,10 +215,13 @@ xml2gmLdaData = function(path){
 #' @export
 #'
 #' @examples
-#' idData <- xml2gmLdaData("https://zenodo.org/record/10512712/files/apis-mellifera-queens-workers-drones.dw.xml")
-#' unknownDat <- read.csv("https://zenodo.org/record/8071014/files/IN-raw-coordinates.csv")
-#' unknownDat <- data.frame(unknownDat, row.names = 1)  # move column 1 to row names
-#' id <- gmLdaData2id(idData, unknownDat)
+#' xmlPath = system.file("extdata",
+#'                       "apis-mellifera-queens-workers-drones.dw.xml",
+#'                       package="IdentiFlyR")
+#' idData = xml2gmLdaData(xmlPath)
+#' data(lineages)
+#' unknownData <- lineages[,-1]
+#' id <- gmLdaData2id(idData, unknownData)
 gmLdaData2id = function(idData, data, average = TRUE){
   # calculate means LD by matrix multiplication
   meansLD = idData$means %*% t(idData$coefficients)
@@ -241,9 +258,9 @@ gmLdaData2id = function(idData, data, average = TRUE){
 
     LdTab = as.data.frame(LdTab)
     plot = covEllipses(meansLD, idData$covariances) +
-      ggplot2::geom_point(LdTab, mapping=ggplot2::aes(x = LdTab$LD1, y = LdTab$LD2, colour = "zzz") ) +
+      ggplot2::geom_point(LdTab, mapping=ggplot2::aes(x = LD1, y = LD2, colour = "zzz") ) +
       ggrepel::geom_label_repel(LdTab,
-                                mapping=ggplot2::aes(x = LdTab$LD1, y = LdTab$LD2, colour = "zzz", label = "unknown"),
+                                mapping=ggplot2::aes(x = LD1, y = LD2, colour = "zzz", label = "unknown"),
                                 nudge_x = 0.75, nudge_y = 0) +
       ggplot2::scale_color_manual(values = append(grDevices::rainbow(nrow(idData$means)), "black"))
   } else
@@ -264,7 +281,7 @@ gmLdaData2id = function(idData, data, average = TRUE){
     id = classifyMatLD(LdTab, meansLD, idData$covariances)
 
     plot = covEllipses(meansLD, idData$covariances) +
-      ggplot2::geom_point(LdTab, mapping=ggplot2::aes(x = LdTab$LD1, y = LdTab$LD2, colour = "zzz") ) +
+      ggplot2::geom_point(LdTab, mapping=ggplot2::aes(x = LD1, y = LD2, colour = "zzz") ) +
       ggplot2::scale_color_manual(values = append(grDevices::rainbow(nrow(idData$means)), "black"))
   }
 
@@ -319,7 +336,7 @@ classifyMatLD = function(unknown.LD, means, covariances){
 
 # plot ellipses for the two LD
 
-#' Plot ellipses for the first two LD using data from covariance matrices
+#' Plot ellipses using covariance matrices without access to raw data
 #'
 #' @param means a matrix-like R object, with at least two dimensions
 #' @param covariances a matrix-like R object, with at least two dimensions
@@ -330,8 +347,10 @@ classifyMatLD = function(unknown.LD, means, covariances){
 #' @export
 #'
 #' @examples
-#' path = "https://zenodo.org/record/10512712/files/apis-mellifera-queens-workers-drones.dw.xml"
-#' idData = xml2gmLdaData(path)
+#' xmlPath = system.file("extdata",
+#'                       "apis-mellifera-queens-workers-drones.dw.xml",
+#'                       package="IdentiFlyR")
+#' idData = xml2gmLdaData(xmlPath)
 #' idMeans = idData$means %*% t(idData$coefficients)
 #' covEllipses(idMeans, idData$covariances)
 covEllipses = function(means, covariances, x = 1, y = 2){

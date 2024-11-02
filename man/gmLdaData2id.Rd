@@ -20,8 +20,11 @@ list of id data
 Classify unknown samples using identification data
 }
 \examples{
-idData <- xml2gmLdaData("https://zenodo.org/record/10512712/files/apis-mellifera-queens-workers-drones.dw.xml")
-unknownDat <- read.csv("https://zenodo.org/record/8071014/files/IN-raw-coordinates.csv")
-unknownDat <- data.frame(unknownDat, row.names = 1)  # move column 1 to row names
-id <- gmLdaData2id(idData, unknownDat)
+xmlPath = system.file("extdata",
+                      "apis-mellifera-queens-workers-drones.dw.xml",
+                      package="IdentiFlyR")
+idData = xml2gmLdaData(xmlPath)
+data(lineages)
+unknownData <- lineages[,-1]
+id <- gmLdaData2id(idData, unknownData)
 }

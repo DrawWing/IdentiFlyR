@@ -11,15 +11,23 @@ xml2gmLdaData(path)
 }
 \value{
 list of classification data
+\itemize{
+  \item reference - matrix with reference configuration.
+  \item means - matrix with class means.
+  \item covariances - list of covariance matrices.
+  \item coefficients - matrix with LDA coefficients.
+}
 }
 \description{
 Read classification data from XML file
 }
 \examples{
-idData = xml2gmLdaData("https://zenodo.org/record/10512712/files/apis-mellifera-queens-workers-drones.dw.xml")
-unknown <- read.csv("https://zenodo.org/record/8071014/files/IN-raw-coordinates.csv")
-unknown <- data.frame(unknown, row.names = 1)  # move column 1 to row names
-id = gmLdaData2id(idData, unknown, average = TRUE)
+xmlPath = system.file("extdata",
+                      "apis-mellifera-queens-workers-drones.dw.xml",
+                      package="IdentiFlyR")
+idData = xml2gmLdaData(xmlPath)
+data(lineages)
+unknownData <- lineages[,-1]
+id = gmLdaData2id(idData, unknownData, average = FALSE)
 id$plot
-id$id
 }

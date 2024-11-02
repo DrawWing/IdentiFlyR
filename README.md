@@ -18,7 +18,7 @@ Currently IdentiFLyR only supports geometric morphometric data in two
 dimensions. \## Installation
 
 You can install the development version of IdentiFlyR from
-[GitHub](https://github.com/) with:
+[GitHub](https://github.com/DrawWing/IdentiFlyR) with:
 
 ``` r
 # install.packages("devtools")
@@ -32,8 +32,12 @@ ellipses in the first two linear discriminant functions. Identification
 data consists of: reference, means, covariances and coefficients.
 
 ``` r
+
 library(IdentiFlyR)
-idData = xml2gmLdaData("https://zenodo.org/record/10512712/files/apis-mellifera-queens-workers-drones.dw.xml")
+xmlPath = system.file("extdata",
+                      "apis-mellifera-queens-workers-drones.dw.xml",
+                      package="IdentiFlyR")
+idData = xml2gmLdaData(xmlPath)
 names(idData)
 #> [1] "reference"    "means"        "covariances"  "coefficients"
 # transfer means to LDA space
@@ -46,6 +50,7 @@ covEllipses(meansLda, idData$covariances)
 Read raw coordinated of 19 landmarks.
 
 ``` r
+
 wings <- read.csv("https://zenodo.org/record/8071014/files/IN-raw-coordinates.csv")
 wings <- data.frame(wings, row.names = 1)  # move column 1 to row names
 ```
@@ -54,16 +59,9 @@ Classify the mean of all data. The mean of all rows has been classified
 as “workers”.
 
 ``` r
+
 id = gmLdaData2id(idData, wings, average = TRUE)
 id$plot
-#> Warning: Use of `LdTab$LD1` is discouraged.
-#> ℹ Use `LD1` instead.
-#> Warning: Use of `LdTab$LD2` is discouraged.
-#> ℹ Use `LD2` instead.
-#> Warning: Use of `LdTab$LD1` is discouraged.
-#> ℹ Use `LD1` instead.
-#> Warning: Use of `LdTab$LD2` is discouraged.
-#> ℹ Use `LD2` instead.
 ```
 
 <img src="man/figures/README-classify-mean-1.png" width="100%" />
@@ -79,6 +77,7 @@ id$id
 Classify rows. All 350 rows were classified as “workers”.
 
 ``` r
+
 id = gmLdaData2id(idData, wings, average = FALSE)
 id$plot
 ```
@@ -99,6 +98,7 @@ table(id$id$group)
 Classify the first row. It was classified as “worker”.
 
 ``` r
+
 id = gmLdaData2id(idData, wings[1,])
 id$id
 #>               MD2            P
@@ -110,13 +110,15 @@ id$id
 Create identification data and store it in an XML file.
 
 ``` r
-wingsLin = read.csv("https://zenodo.org/record/7567336/files/Nawrocka_et_al2018-sample-aligned.csv")
-grVec = wingsLin$lineage
-wingsLin = wingsLin[, -c(1:4)] # remove unwanted columns
-XML = gmLdaData2xml(wingsLin, grVec)
-XML$addTag("prototype", close=TRUE, attrs = c(file="apis-worker-prototype.dw.png")) # add prototype for IdentiFly software
-library(XML) 
-XML::saveXML(XML$value(), file="apis-mellifera-lineage.dw.xml",
-             prefix = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
+
+data(lineages)
+grVec = lineages$lineage
+coordinates = lineages[,-1] # remove the first column
+gmLdaData2xml(coordinates, grVec, "apis-mellifera-lineage.dw.xml")
 #> [1] "apis-mellifera-lineage.dw.xml"
+idData = xml2gmLdaData("apis-mellifera-lineage.dw.xml")
+id = gmLdaData2id(idData, coordinates[1,], average = FALSE)
+id$plot
 ```
+
+<img src="man/figures/README-write-xml-1.png" width="100%" />

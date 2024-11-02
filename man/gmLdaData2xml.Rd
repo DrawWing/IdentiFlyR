@@ -4,25 +4,26 @@
 \alias{gmLdaData2xml}
 \title{Create XML document with classification data}
 \usage{
-gmLdaData2xml(inData, grVec)
+gmLdaData2xml(inData, grVec, file, prototype = "")
 }
 \arguments{
 \item{inData}{a matrix-like R object, with at least six columns}
 
 \item{grVec}{a vector with grouping variable}
-}
-\value{
-XML document
+
+\item{file}{a character string with file name}
+
+\item{prototype}{an optional character string with prototype file name. It is used by IdentiFly to describe landmarks.}
 }
 \description{
 Create XML document with classification data
 }
 \examples{
-inData = read.csv("https://zenodo.org/record/7567336/files/Nawrocka_et_al2018-sample-aligned.csv")
-grVec = inData$lineage
-inData = inData[, -c(1:4)] # remove unwanted columns
-XML = gmLdaData2xml(inData, grVec)
-XML$addTag("prototype", close=TRUE, attrs = c(file="apis-worker-prototype.dw.png")) # add prototype for IdentiFly software
-library(XML)
-XML::saveXML(XML$value(), file="apis-mellifera-lineage.dw.xml", prefix = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
+data(lineages)
+grVec = lineages$lineage
+coordinates = lineages[,-1] # remove the first column
+gmLdaData2xml(coordinates, grVec, "apis-mellifera-lineage.dw.xml")
+idData = xml2gmLdaData("apis-mellifera-lineage.dw.xml")
+id = gmLdaData2id(idData, coordinates, average = FALSE)
+id$plot
 }

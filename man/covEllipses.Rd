@@ -2,7 +2,7 @@
 % Please edit documentation in R/IdentiFlyR.R
 \name{covEllipses}
 \alias{covEllipses}
-\title{Plot ellipses for the first two LD using data from covariance matrices}
+\title{Plot ellipses using covariance matrices without access to raw data}
 \usage{
 covEllipses(means, covariances, x = 1, y = 2)
 }
@@ -19,11 +19,13 @@ covEllipses(means, covariances, x = 1, y = 2)
 ggplot2 plot
 }
 \description{
-Plot ellipses for the first two LD using data from covariance matrices
+Plot ellipses using covariance matrices without access to raw data
 }
 \examples{
-path = "https://zenodo.org/record/10512712/files/apis-mellifera-queens-workers-drones.dw.xml"
-idData = xml2gmLdaData(path)
+xmlPath = system.file("extdata",
+                      "apis-mellifera-queens-workers-drones.dw.xml",
+                      package="IdentiFlyR")
+idData = xml2gmLdaData(xmlPath)
 idMeans = idData$means \%*\% t(idData$coefficients)
 covEllipses(idMeans, idData$covariances)
 }

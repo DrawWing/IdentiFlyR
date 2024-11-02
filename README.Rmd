@@ -23,7 +23,7 @@ An alternative to this package could be to provide all the raw data and use it f
 Currently IdentiFLyR only supports geometric morphometric data in two dimensions. 
 ## Installation
 
-You can install the development version of IdentiFlyR from [GitHub](https://github.com/) with:
+You can install the development version of IdentiFlyR from [GitHub](https://github.com/DrawWing/IdentiFlyR) with:
 
 ``` r
 # install.packages("devtools")
@@ -35,8 +35,12 @@ devtools::install_github("DrawWing/IdentiFlyR")
 Read identification data from XML file and plot means and confidence ellipses in the first two linear discriminant functions. Identification data consists of: reference, means, covariances and coefficients. 
 
 ```{r read-xml}
+
 library(IdentiFlyR)
-idData = xml2gmLdaData("https://zenodo.org/record/10512712/files/apis-mellifera-queens-workers-drones.dw.xml")
+xmlPath = system.file("extdata",
+                      "apis-mellifera-queens-workers-drones.dw.xml",
+                      package="IdentiFlyR")
+idData = xml2gmLdaData(xmlPath)
 names(idData)
 # transfer means to LDA space
 meansLda = idData$means %*% t(idData$coefficients)
@@ -47,43 +51,52 @@ covEllipses(meansLda, idData$covariances)
 Read raw coordinated of 19 landmarks.   
 
 ```{r read-data}
+
 wings <- read.csv("https://zenodo.org/record/8071014/files/IN-raw-coordinates.csv")
 wings <- data.frame(wings, row.names = 1)  # move column 1 to row names
+
 ```
 
 Classify the mean of all data. The mean of all rows has been classified as "workers".
 
 ```{r classify-mean}
+
 id = gmLdaData2id(idData, wings, average = TRUE)
 id$plot
 id$id
+
 ```
 
 Classify rows. All 350 rows were classified as "workers".
 
 ```{r classify-rows}
+
 id = gmLdaData2id(idData, wings, average = FALSE)
 id$plot
 head(id$id, 2)
 table(id$id$group)
+
 ```
 
 Classify the first row. It was classified as "worker".
 
 ```{r classify-row1}
+
 id = gmLdaData2id(idData, wings[1,])
 id$id
+
 ```
 
 Create identification data and store it in an XML file. 
 
 ```{r write-xml}
-wingsLin = read.csv("https://zenodo.org/record/7567336/files/Nawrocka_et_al2018-sample-aligned.csv")
-grVec = wingsLin$lineage
-wingsLin = wingsLin[, -c(1:4)] # remove unwanted columns
-XML = gmLdaData2xml(wingsLin, grVec)
-XML$addTag("prototype", close=TRUE, attrs = c(file="apis-worker-prototype.dw.png")) # add prototype for IdentiFly software
-library(XML) 
-XML::saveXML(XML$value(), file="apis-mellifera-lineage.dw.xml",
-             prefix = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
+
+data(lineages)
+grVec = lineages$lineage
+coordinates = lineages[,-1] # remove the first column
+gmLdaData2xml(coordinates, grVec, "apis-mellifera-lineage.dw.xml")
+idData = xml2gmLdaData("apis-mellifera-lineage.dw.xml")
+id = gmLdaData2id(idData, coordinates[1,], average = FALSE)
+id$plot
+
 ```
