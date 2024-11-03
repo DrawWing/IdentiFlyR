@@ -3,5 +3,6 @@
 export(covEllipses)
 export(gmLdaData2id)
 export(gmLdaData2xml)
+export(reorder2D)
 export(xml2gmLdaData)
 export(xml2id)

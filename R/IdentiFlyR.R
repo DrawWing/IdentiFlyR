@@ -258,9 +258,9 @@ gmLdaData2id = function(idData, data, average = TRUE){
 
     LdTab = as.data.frame(LdTab)
     plot = covEllipses(meansLD, idData$covariances) +
-      ggplot2::geom_point(LdTab, mapping=ggplot2::aes(x = LD1, y = LD2, colour = "zzz") ) +
+      ggplot2::geom_point(LdTab, mapping=ggplot2::aes(x = LdTab$LD1, y = LdTab$LD2, colour = "zzz") ) +
       ggrepel::geom_label_repel(LdTab,
-                                mapping=ggplot2::aes(x = LD1, y = LD2, colour = "zzz", label = "unknown"),
+                                mapping=ggplot2::aes(x = LdTab$LD1, y = LdTab$LD2, colour = "zzz", label = "unknown"),
                                 nudge_x = 0.75, nudge_y = 0) +
       ggplot2::scale_color_manual(values = append(grDevices::rainbow(nrow(idData$means)), "black"))
   } else
@@ -281,7 +281,7 @@ gmLdaData2id = function(idData, data, average = TRUE){
     id = classifyMatLD(LdTab, meansLD, idData$covariances)
 
     plot = covEllipses(meansLD, idData$covariances) +
-      ggplot2::geom_point(LdTab, mapping=ggplot2::aes(x = LD1, y = LD2, colour = "zzz") ) +
+      ggplot2::geom_point(LdTab, mapping=ggplot2::aes(x = LdTab$LD1, y = LdTab$LD2, colour = "zzz") ) +
       ggplot2::scale_color_manual(values = append(grDevices::rainbow(nrow(idData$means)), "black"))
   }
 
@@ -363,8 +363,6 @@ xml2id = function(path, data, average = TRUE){
 }
 
 
-# plot ellipses for the two LD
-
 #' Plot ellipses using covariance matrices without access to raw data
 #'
 #' @param means a matrix-like R object, with at least two dimensions
@@ -421,4 +419,72 @@ covEllipses = function(means, covariances, x = 1, y = 2){
                                                            a = a, b = b, angle = angle)) +
     ggrepel::geom_label_repel( ggplot2::aes(label = rownames(ellipses), size = NULL), nudge_y = 0.75) +
     ggplot2::theme(legend.position="none")
+}
+
+#' Reorder 2D landmarks using column names
+#'
+#' @param inData a matrix-like R object, with two dimensions
+#' @param newOrder a numerical vector with new order of landmarks
+#'
+#' @return a matrix with reordered columns
+#' @export
+#'
+#' @examples
+#' xmlPath = system.file("extdata",
+#'                       "apis-mellifera-queens-workers-drones.dw.xml",
+#'                       package="IdentiFlyR")
+#' idData = xml2gmLdaData(xmlPath)
+#' p <- 19 # number of landmarks
+#' k <- 2 # number of dimensions
+#' reference = idData$reference
+#' reference3D <- geomorph::arrayspecs(reference, p, k)
+#' geomorph::plotAllSpecimens(reference3D, label=TRUE)
+#' Bustamente2IdentiFly =
+#' c(18, 17, 15, 14, 16, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 19)
+#' reference = reorder2D(reference, Bustamente2IdentiFly)
+#' reference3D <- geomorph::arrayspecs(reference, p, k)
+#' geomorph::plotAllSpecimens(reference3D, label=TRUE)
+reorder2D = function(inData, newOrder){
+
+  if(!is.matrix(inData))
+    inData = as.matrix(inData)
+  if(!is.matrix(inData))
+    return()
+
+  if ((ncol(inData)%%2) != 0)
+    stop("number of columns should be even")
+  p <- ncol(inData)/2 # number of landmarks
+  k <- 2 # number of dimensions
+
+  # create coordinates names used by IdentiFly
+  xyNames <- c("x1", "y1")
+  for (i in 2:p) {
+    xyNames <- c(xyNames, paste0("x", i))
+    xyNames <- c(xyNames, paste0("y", i))
+  }
+
+  # is newOrder a correct sequence
+  sorted = newOrder[order(newOrder)]
+  if(!all(sorted == seq(from = 1, to = p, by = 1)))
+    return()
+
+  # are all column names present?
+  if(!all(xyNames %in% colnames(inData)))
+    return()
+  # are column names unique?
+  if(any(duplicated(colnames(inData))))
+    return()
+
+  xy = paste0("x", newOrder[1])
+  xy = c(xy, paste0("y", newOrder[1]))
+  reordered = matrix(inData[,xy], ncol=2)
+  for (i in 2:length(newOrder)) {
+    xy = paste0("x", newOrder[i])
+    xy = c(xy, paste0("y", newOrder[i]))
+    reordered = cbind(reordered, matrix(inData[,xy], ncol=2))
+  }
+  colnames(reordered) = xyNames
+  rownames(reordered) = rownames(inData)
+
+  return(reordered)
 }
