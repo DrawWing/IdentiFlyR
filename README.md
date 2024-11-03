@@ -116,8 +116,7 @@ grVec = lineages$lineage
 coordinates = lineages[,-1] # remove the first column
 gmLdaData2xml(coordinates, grVec, "apis-mellifera-lineage.dw.xml")
 #> [1] "apis-mellifera-lineage.dw.xml"
-idData = xml2gmLdaData("apis-mellifera-lineage.dw.xml")
-id = gmLdaData2id(idData, coordinates[1,], average = FALSE)
+id = xml2id("apis-mellifera-lineage.dw.xml", coordinates[1,], average = FALSE)
 id$plot
 ```
 

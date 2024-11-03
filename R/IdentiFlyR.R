@@ -147,7 +147,7 @@ gmLdaData2xml = function(inData, grVec, file, prototype = ""){
 
 #' Read classification data from XML file
 #'
-#' @param path file name with xml document
+#' @param path a file name with xml document
 #'
 #' @return list of classification data
 #' \itemize{
@@ -207,9 +207,9 @@ xml2gmLdaData = function(path){
 
 #' Classify unknown samples using identification data
 #'
-#' @param idData List of identification data
-#' @param data Matrix of unknown data to classify
-#' @param average Optionally classify all rows or averyge only
+#' @param idData a list of identification data
+#' @param data a matrix of unknown data to classify
+#' @param average an optionally Boolean variable indicating if rows are averaged
 #'
 #' @return list of id data
 #' @export
@@ -333,6 +333,35 @@ classifyMatLD = function(unknown.LD, means, covariances){
 
   return(idResults)
 }
+
+#' Classify unknown data using data from XML file
+#'
+#' @param path a file name with xml document
+#' @param data a matrix of unknown data to classify
+#' @param average an optionally Boolean variable indicating if rows are averaged
+#'
+#' @return list of classification data
+#' \itemize{
+#'   \item reference - matrix with reference configuration.
+#'   \item means - matrix with class means.
+#'   \item covariances - list of covariance matrices.
+#'   \item coefficients - matrix with LDA coefficients.
+#' }
+#'
+#' @export
+#'
+#' @examples
+#' xmlPath = system.file("extdata",
+#'                       "apis-mellifera-queens-workers-drones.dw.xml",
+#'                       package="IdentiFlyR")
+#' data(lineages)
+#' unknownData <- lineages[,-1]
+#' id <- xml2id(xmlPath, unknownData)
+xml2id = function(path, data, average = TRUE){
+  idData = xml2gmLdaData(path)
+  return(gmLdaData2id(idData, data, average))
+}
+
 
 # plot ellipses for the two LD
 

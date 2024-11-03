@@ -7,11 +7,11 @@
 gmLdaData2id(idData, data, average = TRUE)
 }
 \arguments{
-\item{idData}{List of identification data}
+\item{idData}{a list of identification data}
 
-\item{data}{Matrix of unknown data to classify}
+\item{data}{a matrix of unknown data to classify}
 
-\item{average}{Optionally classify all rows or averyge only}
+\item{average}{an optionally Boolean variable indicating if rows are averaged}
 }
 \value{
 list of id data
