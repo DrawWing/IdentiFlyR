@@ -449,10 +449,10 @@ reorder2D = function(inData, newOrder){
   if(!is.matrix(inData))
     inData = as.matrix(inData)
   if(!is.matrix(inData))
-    return()
+    stop("inData is not a matrix.")
 
   if ((ncol(inData)%%2) != 0)
-    stop("number of columns should be even")
+    stop("Number of columns is not even.")
   p <- ncol(inData)/2 # number of landmarks
   k <- 2 # number of dimensions
 
@@ -466,14 +466,16 @@ reorder2D = function(inData, newOrder){
   # is newOrder a correct sequence
   sorted = newOrder[order(newOrder)]
   if(!all(sorted == seq(from = 1, to = p, by = 1)))
-    return()
+    stop("Incorrect format of newOrder vector.\n",
+         "After sorting it should be equal to seq(from = 1, to = p, by = 1)\n",
+         "where p is number of landmarks: ncol(inData)/2.")
 
   # are all column names present?
   if(!all(xyNames %in% colnames(inData)))
-    return()
+    stop("Column names of inData should be x1, y1, x2, y2, ...")
   # are column names unique?
   if(any(duplicated(colnames(inData))))
-    return()
+    stop("Columnis of inData shoudl have uique names.")
 
   xy = paste0("x", newOrder[1])
   xy = c(xy, paste0("y", newOrder[1]))
