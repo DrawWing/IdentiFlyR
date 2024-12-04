@@ -212,6 +212,14 @@ xml2gmLdaData = function(path){
 #' @param average an optionally Boolean variable indicating if rows are averaged
 #'
 #' @return list of id data
+#' \itemize{
+#'   \item id - data frame with 2 columns: group and probability.
+#'   \item P - data frame with classification probabilities.
+#'   \item MD2 - data frame with squared Mahalanobis distances.
+#'   \item LD - data frame with linear discriminant scores.
+#'   \item plot - ggplot2 plot.
+#' }
+#'
 #' @export
 #'
 #' @examples
@@ -252,17 +260,8 @@ gmLdaData2id = function(idData, data, average = TRUE){
 
     # calculate LD scores
     LdTab = unknownAligned %*% t(idData$coefficients)
-
-    id = classifyVecLD(LdTab, meansLD, idData$covariances)
-    id = id$class
-
     LdTab = as.data.frame(LdTab)
-    plot = covEllipses(meansLD, idData$covariances) +
-      ggplot2::geom_point(LdTab, mapping=ggplot2::aes(x = LdTab$LD1, y = LdTab$LD2, colour = "zzz") ) +
-      ggrepel::geom_label_repel(LdTab,
-                                mapping=ggplot2::aes(x = LdTab$LD1, y = LdTab$LD2, colour = "zzz", label = "unknown"),
-                                nudge_x = 0.75, nudge_y = 0) +
-      ggplot2::scale_color_manual(values = append(grDevices::rainbow(nrow(idData$means)), "black"))
+
   } else
   {
     # calculate lda scores for all wings
@@ -277,24 +276,26 @@ gmLdaData2id = function(idData, data, average = TRUE){
     LdTab = do.call(rbind, LD.list)
     rownames(LdTab) = rownames(data)
     LdTab = as.data.frame(LdTab)
-
-    id = classifyMatLD(LdTab, meansLD, idData$covariances)
-
-    plot = covEllipses(meansLD, idData$covariances) +
-      ggplot2::geom_point(LdTab, mapping=ggplot2::aes(x = LdTab$LD1, y = LdTab$LD2, colour = "zzz") ) +
-      ggplot2::scale_color_manual(values = append(grDevices::rainbow(nrow(idData$means)), "black"))
   }
 
-  return(list("id" = id,
-              "plot" = plot,
-              "LDx" = LdTab))
+  id = classifyMatLD(LdTab, meansLD, idData$covariances)
+
+  plot = covEllipses(meansLD, idData$covariances) +
+    ggplot2::geom_point(LdTab, mapping=ggplot2::aes(x = LD1, y = LD2, colour = "zzz") ) +
+    ggplot2::scale_color_manual(values = append(grDevices::rainbow(nrow(idData$means)), "black"))
+
+  return(list("id" = id$id,
+              "P" = id$P,
+              "MD2" = id$MD2,
+              "LD" = LdTab,
+              "plot" = plot))
 }
 
 # calculate Mahalnanobis distances for data in one vector
 classifyVecLD = function(unknown.LD, means, covariances){
   groups = rownames(means)
   df = ncol(unknown.LD) - 1
-  resultList = list() # empty list for results
+  idList = list() # empty list for results
   maxP = 0
   maxGroup = ""
   for (i in 1:length(groups)) {
@@ -306,32 +307,42 @@ classifyVecLD = function(unknown.LD, means, covariances){
       maxP = P
       maxGroup = groups[i]
     }
-    resultList[[i]] = results
+    idList[[i]] = results
   }
 
-  outSummary = paste("The sample was classified as", maxGroup, "with probability", maxP)
+  # outSummary = paste("The sample was classified as", maxGroup, "with probability", maxP)
   outMax = data.frame("group" = maxGroup, "P" = maxP)
+  # outMax = c('group'=maxGroup, 'P' = maxP)
 
-  outClass = do.call(rbind, resultList)
-  colnames(outClass) = c("MD2", "P")
-  rownames(outClass) = rownames(means)
+  idMat = do.call(rbind, idList)
+  colnames(idMat) = c("MD2", "P")
+  rownames(idMat) = rownames(means)
 
-  return(list("summary" = outSummary,
-              "max.group" = outMax,
-              "class" = outClass))
+  return(list("maxGroup" = outMax,
+              "classTab" = idMat))
 }
 
 # calculate Mahalnanobis distances for each row in a matrix
 classifyMatLD = function(unknown.LD, means, covariances){
-  resultList = list() # empty list for results
+  idList = list() # empty list for results
+  MDList = list()
+  PList = list()
   for (i in 1:nrow(unknown.LD)) {
     outRow = classifyVecLD(unknown.LD[i,], means, covariances)
-    resultList[[i]] = outRow$max
+    idList[[i]] = outRow$maxGroup
+    MDList[[i]] = outRow$classTab[,1]
+    PList[[i]] = outRow$classTab[,2]
   }
-  idResults = do.call(rbind, resultList)
-  rownames(idResults) = rownames(unknown.LD)
+  idMat = do.call(rbind, idList)
+  rownames(idMat) = rownames(unknown.LD)
+  MDMat = do.call(rbind, MDList)
+  rownames(MDMat) = rownames(unknown.LD)
+  PMat = do.call(rbind, PList)
+  rownames(PMat) = rownames(unknown.LD)
 
-  return(idResults)
+  return(list("id" = idMat,
+              "MD2" = MDMat,
+              "P" = PMat))
 }
 
 #' Classify unknown data using data from XML file

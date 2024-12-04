@@ -9,11 +9,11 @@
 IdentiFlyR can be used to store identification data in an XML file.
 Later, the data can be read from the XML file and used to identify an
 unknown sample. An alternative to this package could be to provide all
-the raw data and use it for identification. For large datasets this
-could be less convenient, slower and undesirable. Identification is
-based on linear discriminant analysis (LDA), also known as canonical
-variate analysis (CVA). The focus of this package is on using LDA to
-identify an unknown sample, not on exploratory analysis.  
+the raw data and use it for identification. For large datasets this may
+be less convenient, slower and undesirable. Identification is based on
+linear discriminant analysis (LDA), also known as canonical variate
+analysis (CVA). The focus of this package is on using LDA to identify an
+unknown sample, not on exploratory analysis.  
 Currently IdentiFLyR only supports geometric morphometric data in two
 dimensions. \## Installation
 
@@ -68,10 +68,8 @@ id$plot
 
 ``` r
 id$id
-#>               MD2            P
-#> drone  73.8759245 8.318471e-18
-#> queen  64.6842675 8.791401e-16
-#> worker  0.5041501 4.776823e-01
+#>    group         P
+#> 1 worker 0.4776823
 ```
 
 Classify rows. All 350 rows were classified as “workers”.
@@ -101,10 +99,8 @@ Classify the first row. It was classified as “worker”.
 
 id = gmLdaData2id(idData, wings[1,])
 id$id
-#>               MD2            P
-#> drone  69.7285902 6.805252e-17
-#> queen  67.5410674 2.063440e-16
-#> worker  0.3150395 5.746041e-01
+#>    group         P
+#> 1 worker 0.5746041
 ```
 
 Create identification data and store it in an XML file.

@@ -1,7 +1,7 @@
 Package: IdentiFlyR
 Type: Package
 Title: Create and reuse XML file for identification based on geometric morphometrics
-Version: 0.1.0
+Version: 0.1.1
 Authors@R:
     person("Adam", "Tofilski", , "rotofils@cyf-kr.edu.pl", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-3898-7029"))

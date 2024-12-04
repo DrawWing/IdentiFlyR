@@ -8,7 +8,10 @@
 A data frame with 187 rows and 39 columns:
 \describe{
   \item{lineage}{Lineage name}
-  \item{x1, y1, ... , x19, y19}{Cartesian coordinates of 19 landmarks}
+  \item{x1}{x Cartesian coordinate of landmark 1}
+  \item{y1}{y Cartesian coordinate of landmark 1}
+  \item{x2}{x Cartesian coordinate of landmark 2}
+  \item{y2}{y Cartesian coordinate of landmark 2}
 }
 }
 \source{

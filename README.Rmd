@@ -19,7 +19,7 @@ knitr::opts_chunk$set(
 <!-- badges: end -->
 
 IdentiFlyR can be used to store identification data in an XML file. Later, the data can be read from the XML file and used to identify an unknown sample.
-An alternative to this package could be to provide all the raw data and use it for identification. For large datasets this could be less convenient, slower and undesirable. Identification is based on linear discriminant analysis (LDA), also known as canonical variate analysis (CVA). The focus of this package is on using LDA to identify an unknown sample, not on exploratory analysis.  
+An alternative to this package could be to provide all the raw data and use it for identification. For large datasets this may be less convenient, slower and undesirable. Identification is based on linear discriminant analysis (LDA), also known as canonical variate analysis (CVA). The focus of this package is on using LDA to identify an unknown sample, not on exploratory analysis.  
 Currently IdentiFLyR only supports geometric morphometric data in two dimensions. 
 ## Installation
 

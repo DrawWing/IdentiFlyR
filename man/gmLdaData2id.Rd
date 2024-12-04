@@ -15,6 +15,13 @@ gmLdaData2id(idData, data, average = TRUE)
 }
 \value{
 list of id data
+\itemize{
+  \item id - data frame with 2 columns: group and probability.
+  \item P - data frame with classification probabilities.
+  \item MD2 - data frame with squared Mahalanobis distances.
+  \item LD - data frame with linear discriminant scores.
+  \item plot - ggplot2 plot.
+}
 }
 \description{
 Classify unknown samples using identification data
