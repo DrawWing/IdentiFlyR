@@ -117,3 +117,12 @@ id$plot
 ```
 
 <img src="man/figures/README-write-xml-1.png" width="100%" />
+
+## Citation
+
+Please cite this publication if you find this code useful:
+
+Kaur, H., Ganie, S. A., & Tofilski, A. (2024). Morphometric
+identification of an unknown honey bee colony: an example from north
+India. Journal of Apicultural Science, 68(2), 155-166.
+<https://doi.org/10.2478/JAS-2024-0013>
